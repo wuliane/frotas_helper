@@ -4,6 +4,7 @@ import 'package:path/path.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
+import '../../models/renter_model.dart';
 import '../../models/vehicle_model.dart';
 
 class DatabaseHelper {
@@ -35,14 +36,30 @@ class DatabaseHelper {
 
     return openDatabase(
       path,
-      version: 1,
+      version: 2,
       onCreate: _onCreate,
+      onUpgrade: _onUpgrade,
     );
   }
 
   Future<void> _onCreate(Database db, int version) async {
+    await _createVehiclesTable(db);
+    await _createRentersTable(db);
+  }
+
+  Future<void> _onUpgrade(
+    Database db,
+    int oldVersion,
+    int newVersion,
+  ) async {
+    if (oldVersion < 2) {
+      await _createRentersTable(db);
+    }
+  }
+
+  Future<void> _createVehiclesTable(Database db) async {
     await db.execute('''
-      CREATE TABLE vehicles (
+      CREATE TABLE IF NOT EXISTS vehicles (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         plate TEXT NOT NULL,
         brand TEXT NOT NULL,
@@ -57,17 +74,31 @@ class DatabaseHelper {
     ''');
   }
 
+  Future<void> _createRentersTable(Database db) async {
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS renters (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        cpf TEXT NOT NULL,
+        rg TEXT NOT NULL DEFAULT '',
+        cnh TEXT NOT NULL,
+        cnhCategory TEXT NOT NULL DEFAULT '',
+        cnhExpiration TEXT NOT NULL DEFAULT '',
+        phone TEXT NOT NULL,
+        email TEXT NOT NULL DEFAULT '',
+        address TEXT NOT NULL DEFAULT '',
+        emergencyContact TEXT NOT NULL DEFAULT '',
+        notes TEXT NOT NULL DEFAULT ''
+      )
+    ''');
+  }
+
   Future<int> insertVehicle(VehicleModel vehicle) async {
     final db = await database;
-
     final data = vehicle.toMap();
     data.remove('id');
 
-    return db.insert(
-      'vehicles',
-      data,
-      conflictAlgorithm: ConflictAlgorithm.replace,
-    );
+    return db.insert('vehicles', data);
   }
 
   Future<List<VehicleModel>> getVehicles() async {
@@ -101,6 +132,50 @@ class DatabaseHelper {
 
     return db.delete(
       'vehicles',
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+  }
+
+  Future<int> insertRenter(RenterModel renter) async {
+    final db = await database;
+    final data = renter.toMap();
+    data.remove('id');
+
+    return db.insert('renters', data);
+  }
+
+  Future<List<RenterModel>> getRenters() async {
+    final db = await database;
+
+    final maps = await db.query(
+      'renters',
+      orderBy: 'name ASC',
+    );
+
+    return maps.map(RenterModel.fromMap).toList();
+  }
+
+  Future<int> updateRenter(RenterModel renter) async {
+    if (renter.id == null) {
+      throw ArgumentError('O locatário precisa possuir um ID.');
+    }
+
+    final db = await database;
+
+    return db.update(
+      'renters',
+      renter.toMap(),
+      where: 'id = ?',
+      whereArgs: [renter.id],
+    );
+  }
+
+  Future<int> deleteRenter(int id) async {
+    final db = await database;
+
+    return db.delete(
+      'renters',
       where: 'id = ?',
       whereArgs: [id],
     );

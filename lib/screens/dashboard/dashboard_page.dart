@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:frotas_helper/screens/vehicles/vehicles_page.dart';
+import '../renters/renters_page.dart';
 
 class DashboardPage extends StatelessWidget {
   const DashboardPage({super.key});
@@ -117,7 +118,14 @@ class DashboardPage extends StatelessWidget {
                     title: 'Locatários',
                     subtitle: 'Cadastro de clientes',
                     icon: Icons.person_outline,
-                    onTap: () {},
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const RentersPage(),
+                        ),
+                      );
+                    },
                   ),
                   _QuickActionCard(
                     title: 'Aluguéis',
