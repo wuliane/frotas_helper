@@ -4,7 +4,14 @@ import '../../core/database/database_helper.dart';
 import '../../models/vehicle_model.dart';
 
 class AddVehiclePage extends StatefulWidget {
-  const AddVehiclePage({super.key});
+  final VehicleModel? vehicle;
+
+  const AddVehiclePage({
+    super.key,
+    this.vehicle,
+  });
+
+  bool get isEditing => vehicle != null;
 
   @override
   State<AddVehiclePage> createState() => _AddVehiclePageState();
@@ -26,6 +33,30 @@ class _AddVehiclePageState extends State<AddVehiclePage> {
   bool _saving = false;
 
   @override
+  void initState() {
+    super.initState();
+
+    final vehicle = widget.vehicle;
+
+    if (vehicle != null) {
+      _plateController.text = vehicle.plate;
+      _brandController.text = vehicle.brand;
+      _modelController.text = vehicle.model;
+      _yearController.text = vehicle.year.toString();
+      _colorController.text = vehicle.color;
+      _kmController.text = vehicle.currentKm.toString();
+
+      _purchaseValueController.text =
+          vehicle.purchaseValue.toStringAsFixed(2).replaceAll('.', ',');
+
+      _rentalValueController.text =
+          vehicle.rentalValue.toStringAsFixed(2).replaceAll('.', ',');
+
+      _status = vehicle.status;
+    }
+  }
+
+  @override
   void dispose() {
     _plateController.dispose();
     _brandController.dispose();
@@ -39,10 +70,14 @@ class _AddVehiclePageState extends State<AddVehiclePage> {
   }
 
   double _parseDouble(String value) {
-    return double.tryParse(
-          value.replaceAll('.', '').replaceAll(',', '.'),
-        ) ??
-        0;
+    final normalizedValue = value
+        .trim()
+        .replaceAll('R\$', '')
+        .replaceAll(' ', '')
+        .replaceAll('.', '')
+        .replaceAll(',', '.');
+
+    return double.tryParse(normalizedValue) ?? 0;
   }
 
   Future<void> _saveVehicle() async {
@@ -56,6 +91,7 @@ class _AddVehiclePageState extends State<AddVehiclePage> {
 
     try {
       final vehicle = VehicleModel(
+        id: widget.vehicle?.id,
         plate: _plateController.text.trim().toUpperCase(),
         brand: _brandController.text.trim(),
         model: _modelController.text.trim(),
@@ -67,11 +103,25 @@ class _AddVehiclePageState extends State<AddVehiclePage> {
         status: _status,
       );
 
-      await DatabaseHelper.instance.insertVehicle(vehicle);
+      if (widget.isEditing) {
+        await DatabaseHelper.instance.updateVehicle(vehicle);
+      } else {
+        await DatabaseHelper.instance.insertVehicle(vehicle);
+      }
 
       if (!mounted) {
         return;
       }
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            widget.isEditing
+                ? 'Veículo atualizado com sucesso.'
+                : 'Veículo cadastrado com sucesso.',
+          ),
+        ),
+      );
 
       Navigator.pop(context, true);
     } catch (error) {
@@ -81,7 +131,9 @@ class _AddVehiclePageState extends State<AddVehiclePage> {
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Não foi possível salvar o veículo: $error'),
+          content: Text(
+            'Não foi possível salvar o veículo: $error',
+          ),
         ),
       );
     } finally {
@@ -101,13 +153,33 @@ class _AddVehiclePageState extends State<AddVehiclePage> {
     return null;
   }
 
-  String? _integerValidator(String? value) {
+  String? _yearValidator(String? value) {
     if (value == null || value.trim().isEmpty) {
       return 'Campo obrigatório';
     }
 
-    if (int.tryParse(value.trim()) == null) {
-      return 'Digite somente números';
+    final year = int.tryParse(value.trim());
+
+    if (year == null) {
+      return 'Digite um ano válido';
+    }
+
+    if (year < 1900 || year > 2100) {
+      return 'Ano inválido';
+    }
+
+    return null;
+  }
+
+  String? _kmValidator(String? value) {
+    if (value == null || value.trim().isEmpty) {
+      return 'Campo obrigatório';
+    }
+
+    final km = int.tryParse(value.trim());
+
+    if (km == null || km < 0) {
+      return 'Digite uma quilometragem válida';
     }
 
     return null;
@@ -129,7 +201,11 @@ class _AddVehiclePageState extends State<AddVehiclePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Cadastrar veículo'),
+        title: Text(
+          widget.isEditing
+              ? 'Editar veículo'
+              : 'Cadastrar veículo',
+        ),
       ),
       body: SafeArea(
         child: Form(
@@ -140,10 +216,12 @@ class _AddVehiclePageState extends State<AddVehiclePage> {
               TextFormField(
                 controller: _plateController,
                 textCapitalization: TextCapitalization.characters,
+                maxLength: 7,
                 decoration: const InputDecoration(
                   labelText: 'Placa',
                   hintText: 'ABC1D23',
                   prefixIcon: Icon(Icons.pin_outlined),
+                  counterText: '',
                 ),
                 validator: _requiredValidator,
               ),
@@ -165,7 +243,9 @@ class _AddVehiclePageState extends State<AddVehiclePage> {
                 decoration: const InputDecoration(
                   labelText: 'Modelo',
                   hintText: 'Voyage 1.0',
-                  prefixIcon: Icon(Icons.directions_car_outlined),
+                  prefixIcon: Icon(
+                    Icons.directions_car_outlined,
+                  ),
                 ),
                 validator: _requiredValidator,
               ),
@@ -180,7 +260,7 @@ class _AddVehiclePageState extends State<AddVehiclePage> {
                         labelText: 'Ano',
                         hintText: '2020',
                       ),
-                      validator: _integerValidator,
+                      validator: _yearValidator,
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -207,7 +287,7 @@ class _AddVehiclePageState extends State<AddVehiclePage> {
                   suffixText: 'km',
                   prefixIcon: Icon(Icons.speed_outlined),
                 ),
-                validator: _integerValidator,
+                validator: _kmValidator,
               ),
               const SizedBox(height: 14),
               TextFormField(
@@ -229,8 +309,10 @@ class _AddVehiclePageState extends State<AddVehiclePage> {
                   decimal: true,
                 ),
                 decoration: const InputDecoration(
-                  labelText: 'Valor do aluguel semanal',
-                  hintText: '600,00',
+                  labelText: 'Valor base da locação',
+                  hintText: '650,00',
+                  helperText:
+                      'O valor negociado ficará no contrato.',
                   prefixText: 'R\$ ',
                 ),
                 validator: _moneyValidator,
@@ -271,19 +353,26 @@ class _AddVehiclePageState extends State<AddVehiclePage> {
                 },
               ),
               const SizedBox(height: 24),
-              FilledButton.icon(
-                onPressed: _saving ? null : _saveVehicle,
-                icon: _saving
-                    ? const SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                        ),
-                      )
-                    : const Icon(Icons.save_outlined),
-                label: Text(
-                  _saving ? 'Salvando...' : 'Salvar veículo',
+              SizedBox(
+                height: 52,
+                child: FilledButton.icon(
+                  onPressed: _saving ? null : _saveVehicle,
+                  icon: _saving
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                          ),
+                        )
+                      : const Icon(Icons.save_outlined),
+                  label: Text(
+                    _saving
+                        ? 'Salvando...'
+                        : widget.isEditing
+                            ? 'Salvar alterações'
+                            : 'Salvar veículo',
+                  ),
                 ),
               ),
             ],
