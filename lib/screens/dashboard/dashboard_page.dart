@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:frotas_helper/screens/vehicles/vehicles_page.dart';
+
 import '../renters/renters_page.dart';
+import '../vehicles/vehicles_page.dart';
+import '../rentals/rentals_page.dart';
 
 class DashboardPage extends StatelessWidget {
   const DashboardPage({super.key});
@@ -28,10 +30,25 @@ class DashboardPage extends StatelessWidget {
             ),
           ],
         ),
+        actions: [
+          IconButton(
+            onPressed: () {},
+            tooltip: 'Notificações',
+            icon: const Icon(
+              Icons.notifications_outlined,
+            ),
+          ),
+          const SizedBox(width: 8),
+        ],
       ),
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.fromLTRB(
+            16,
+            12,
+            16,
+            28,
+          ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -109,7 +126,7 @@ class DashboardPage extends StatelessWidget {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (_) => VehiclesPage(),
+                          builder: (_) => const VehiclesPage(),
                         ),
                       );
                     },
@@ -128,31 +145,72 @@ class DashboardPage extends StatelessWidget {
                     },
                   ),
                   _QuickActionCard(
-                    title: 'Aluguéis',
+                    title: 'Locações',
                     subtitle: 'Contratos e pagamentos',
                     icon: Icons.assignment_outlined,
-                    onTap: () {},
+                    onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const RentalsPage(),
+                      ),
+                    );
+                    },
                   ),
                   _QuickActionCard(
                     title: 'Manutenções',
                     subtitle: 'Custos e revisões',
                     icon: Icons.car_repair_outlined,
-                    onTap: () {},
+                    onTap: () {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text(
+                            'O módulo de manutenções ainda será criado.',
+                          ),
+                        ),
+                      );
+                    },
                   ),
                   _QuickActionCard(
                     title: 'Vistorias',
                     subtitle: 'Fotos e assinaturas',
                     icon: Icons.fact_check_outlined,
-                    onTap: () {},
+                    onTap: () {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text(
+                            'O módulo de vistorias ainda será criado.',
+                          ),
+                        ),
+                      );
+                    },
                   ),
                   _QuickActionCard(
                     title: 'Relatórios',
                     subtitle: 'Receitas e despesas',
                     icon: Icons.bar_chart_outlined,
-                    onTap: () {},
+                    onTap: () {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text(
+                            'O módulo de relatórios ainda será criado.',
+                          ),
+                        ),
+                      );
+                    },
                   ),
                 ],
               ),
+              const SizedBox(height: 24),
+              const Text(
+                'Próximos alertas',
+                style: TextStyle(
+                  fontSize: 19,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 12),
+              const _EmptyAlertsCard(),
             ],
           ),
         ),
@@ -202,14 +260,88 @@ class _FinancialCard extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 20),
-          Text(
-            'Receitas: R\$ 0,00   •   Despesas: R\$ 0,00',
-            style: TextStyle(
-              color: colorScheme.onPrimary,
-            ),
+          Row(
+            children: [
+              Expanded(
+                child: _FinancialItem(
+                  title: 'Receitas',
+                  value: 'R\$ 0,00',
+                  icon: Icons.arrow_upward,
+                  foregroundColor: colorScheme.onPrimary,
+                ),
+              ),
+              Container(
+                width: 1,
+                height: 42,
+                color: colorScheme.onPrimary.withValues(
+                  alpha: 0.35,
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: _FinancialItem(
+                  title: 'Despesas',
+                  value: 'R\$ 0,00',
+                  icon: Icons.arrow_downward,
+                  foregroundColor: colorScheme.onPrimary,
+                ),
+              ),
+            ],
           ),
         ],
       ),
+    );
+  }
+}
+
+class _FinancialItem extends StatelessWidget {
+  final String title;
+  final String value;
+  final IconData icon;
+  final Color foregroundColor;
+
+  const _FinancialItem({
+    required this.title,
+    required this.value,
+    required this.icon,
+    required this.foregroundColor,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Icon(
+          icon,
+          color: foregroundColor,
+          size: 20,
+        ),
+        const SizedBox(width: 8),
+        Flexible(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: TextStyle(
+                  color: foregroundColor.withValues(
+                    alpha: 0.8,
+                  ),
+                  fontSize: 12,
+                ),
+              ),
+              Text(
+                value,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: foregroundColor,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }
@@ -227,15 +359,24 @@ class _StatusCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Row(
           children: [
-            Icon(
-              icon,
-              size: 30,
-              color: Theme.of(context).colorScheme.primary,
+            Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                color: colorScheme.primaryContainer,
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: Icon(
+                icon,
+                color: colorScheme.onPrimaryContainer,
+              ),
             ),
             const SizedBox(width: 12),
             Expanded(
@@ -278,6 +419,8 @@ class _QuickActionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
     return Card(
       clipBehavior: Clip.antiAlias,
       child: InkWell(
@@ -291,7 +434,7 @@ class _QuickActionCard extends StatelessWidget {
               Icon(
                 icon,
                 size: 30,
-                color: Theme.of(context).colorScheme.primary,
+                color: colorScheme.primary,
               ),
               const SizedBox(height: 10),
               Text(
@@ -311,6 +454,49 @@ class _QuickActionCard extends StatelessWidget {
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class _EmptyAlertsCard extends StatelessWidget {
+  const _EmptyAlertsCard();
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(
+          horizontal: 18,
+          vertical: 22,
+        ),
+        child: Row(
+          children: [
+            Icon(
+              Icons.notifications_none,
+              size: 34,
+              color: Theme.of(context).colorScheme.primary,
+            ),
+            const SizedBox(width: 14),
+            const Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Nenhum alerta pendente',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  SizedBox(height: 3),
+                  Text(
+                    'Os lembretes de quilometragem, pagamentos e manutenção aparecerão aqui.',
+                  ),
+                ],
+              ),
+            ),
+          ],
         ),
       ),
     );
